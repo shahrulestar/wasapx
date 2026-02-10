@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, useCallback } from "react"
+import { useVirtualizer } from "@tanstack/react-virtual"
 import type { DateRange } from "react-day-picker"
 import { ChatBubble, isEncryptionNotice, isSystemLikeMessage } from "@/components/chat-bubble"
 import { ChatHeader } from "@/components/chat-header"
@@ -33,11 +34,10 @@ function isSameDay(a: Date, b: Date): boolean {
 }
 
 export function ChatViewer({ chat, onBack }: ChatViewerProps) {
-  const bottomRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const lastScrollTop = useRef(0)
   const [isBarVisible, setIsBarVisible] = useState(true)
-  const [isSwapped, setIsSwapped] = useState(false)
+  const [selfIndex, setSelfIndex] = useState(-1)
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
 
@@ -91,14 +91,17 @@ export function ChatViewer({ chat, onBack }: ChatViewerProps) {
     return () => viewport.removeEventListener("scroll", handleScroll)
   }, [])
 
-  // Compute min/max dates from the chat
+  // Compute min/max dates from the chat — use loop to avoid stack overflow with spread on large arrays
   const chatDateRange = useMemo(() => {
     if (chat.messages.length === 0) return { min: new Date(), max: new Date() }
-    const timestamps = chat.messages.map((m) => m.timestamp.getTime())
-    return {
-      min: new Date(Math.min(...timestamps)),
-      max: new Date(Math.max(...timestamps)),
+    let min = chat.messages[0].timestamp.getTime()
+    let max = min
+    for (let i = 1; i < chat.messages.length; i++) {
+      const t = chat.messages[i].timestamp.getTime()
+      if (t < min) min = t
+      if (t > max) max = t
     }
+    return { min: new Date(min), max: new Date(max) }
   }, [chat.messages])
 
   // Filter messages by date range
@@ -117,9 +120,29 @@ export function ChatViewer({ chat, onBack }: ChatViewerProps) {
     })
   }, [chat.messages, dateRange])
 
-  const nonSystemMessages = filteredMessages.filter(
-    (m) => !m.isSystem && !isEncryptionNotice(m.message) && !isSystemLikeMessage(m.message)
-  )
+  // Memoize non-system message count (previously recomputed on every render)
+  const nonSystemMessageCount = useMemo(() => {
+    return filteredMessages.filter(
+      (m) => !m.isSystem && !isEncryptionNotice(m.message) && !isSystemLikeMessage(m.message)
+    ).length
+  }, [filteredMessages])
+
+  const currentSelf = selfIndex === -1 ? chat.self : chat.participants[selfIndex]
+
+  // Virtual scrolling — only render messages visible in the viewport + overscan buffer
+  const virtualizer = useVirtualizer({
+    count: filteredMessages.length,
+    getScrollElement: () => scrollAreaRef.current,
+    estimateSize: () => 72,
+    overscan: 20,
+  })
+
+  const handleSwap = useCallback(() => {
+    setSelfIndex((prev) => {
+      const next = prev + 1
+      return next >= chat.participants.length ? -1 : next
+    })
+  }, [chat.participants.length])
 
   return (
     <div className="flex h-dvh flex-col">
@@ -128,54 +151,76 @@ export function ChatViewer({ chat, onBack }: ChatViewerProps) {
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
       >
         <div className="mx-auto w-full max-w-[800px] px-3">
-          <div className="flex flex-col gap-1 py-4 pb-28">
-            {filteredMessages.map((msg, idx) => {
-              const prevMsg = idx > 0 ? filteredMessages[idx - 1] : null
-              const showDateSep =
-                !prevMsg || !isSameDay(prevMsg.timestamp, msg.timestamp)
-              const isPrevSystemLike =
-                prevMsg &&
-                (prevMsg.isSystem || isEncryptionNotice(prevMsg.message) || isSystemLikeMessage(prevMsg.message))
-              const isCurrentSystemLike =
-                msg.isSystem || isEncryptionNotice(msg.message) || isSystemLikeMessage(msg.message)
-              const showSender =
-                !isCurrentSystemLike &&
-                (!prevMsg ||
-                  prevMsg.sender !== msg.sender ||
-                  isPrevSystemLike ||
-                  showDateSep)
+          <div className="pt-4 pb-28">
+            <div
+              style={{
+                height: virtualizer.getTotalSize(),
+                width: "100%",
+                position: "relative",
+              }}
+            >
+              {virtualizer.getVirtualItems().map((virtualItem) => {
+                const idx = virtualItem.index
+                const msg = filteredMessages[idx]
+                const prevMsg = idx > 0 ? filteredMessages[idx - 1] : null
+                const showDateSep =
+                  !prevMsg || !isSameDay(prevMsg.timestamp, msg.timestamp)
+                const isPrevSystemLike =
+                  prevMsg &&
+                  (prevMsg.isSystem || isEncryptionNotice(prevMsg.message) || isSystemLikeMessage(prevMsg.message))
+                const isCurrentSystemLike =
+                  msg.isSystem || isEncryptionNotice(msg.message) || isSystemLikeMessage(msg.message)
+                const showSender =
+                  !isCurrentSystemLike &&
+                  (!prevMsg ||
+                    prevMsg.sender !== msg.sender ||
+                    isPrevSystemLike ||
+                    showDateSep)
 
-              return (
-                <div key={idx}>
-                  {showDateSep && (
-                    <div className="flex items-center justify-center py-3">
-                      <div className="rounded-lg bg-muted px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
-                        {formatDateLabel(msg.timestamp)}
+                return (
+                  <div
+                    key={virtualItem.key}
+                    ref={virtualizer.measureElement}
+                    data-index={virtualItem.index}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      transform: `translateY(${virtualItem.start}px)`,
+                    }}
+                    className="pb-1"
+                  >
+                    {showDateSep && (
+                      <div className="flex items-center justify-center py-3">
+                        <div className="rounded-lg bg-muted px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
+                          {formatDateLabel(msg.timestamp)}
+                        </div>
                       </div>
+                    )}
+                    <div className={showSender && !msg.isSystem ? "mt-2" : ""}>
+                      <ChatBubble
+                        message={msg}
+                        isSelf={msg.sender === currentSelf}
+                        showSender={showSender}
+                        media={chat.media}
+                      />
                     </div>
-                  )}
-                  <div className={showSender && !msg.isSystem ? "mt-2" : ""}>
-                    <ChatBubble
-                      message={msg}
-                      isSelf={isSwapped ? msg.sender !== chat.self : msg.sender === chat.self}
-                      showSender={showSender}
-                      media={chat.media}
-                    />
                   </div>
-                </div>
-              )
-            })}
-            <div ref={bottomRef} />
+                )
+              })}
+            </div>
           </div>
         </div>
       </div>
 
       <ChatHeader
         participants={chat.participants}
-        messageCount={nonSystemMessages.length}
+        messageCount={nonSystemMessageCount}
         onBack={onBack}
-        onSwap={() => setIsSwapped((prev) => !prev)}
-        isSwapped={isSwapped}
+        onSwap={handleSwap}
+        isSwapped={selfIndex !== -1}
+        currentSelf={currentSelf}
         isVisible={isBarVisible}
         dateRange={dateRange}
         onDateRangeChange={setDateRange}

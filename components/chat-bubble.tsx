@@ -1,3 +1,4 @@
+import { memo } from "react"
 import type { ChatMessage } from "@/lib/parse-chat"
 import { IMAGE_EXT, VIDEO_EXT, AUDIO_EXT } from "@/lib/parse-chat"
 import { cn } from "@/lib/utils"
@@ -105,7 +106,9 @@ function MediaContent({ filename, src }: { filename: string; src: string }) {
   )
 }
 
-export function ChatBubble({ message, isSelf, showSender, media = {} }: ChatBubbleProps) {
+const EMPTY_MEDIA: Record<string, string> = {}
+
+export const ChatBubble = memo(function ChatBubble({ message, isSelf, showSender, media = EMPTY_MEDIA }: ChatBubbleProps) {
   // Render encryption notice and system messages as centered badge (like date labels)
   if (message.isSystem || isEncryptionNotice(message.message) || isSystemLikeMessage(message.message)) {
     return (
@@ -159,4 +162,4 @@ export function ChatBubble({ message, isSelf, showSender, media = {} }: ChatBubb
       </div>
     </div>
   )
-}
+})

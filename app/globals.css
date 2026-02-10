@@ -124,3 +124,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Safe area bottom for bottom drawers (iOS Safari collapsed toolbar) */
+[data-vaul-drawer-direction="bottom"][data-slot="drawer-content"] {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

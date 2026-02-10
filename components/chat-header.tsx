@@ -1,13 +1,19 @@
 "use client"
 
 import type { DateRange } from "react-day-picker"
-import { ArrowLeft, Repeat, Users, MessageSquare } from "lucide-react"
+import { ArrowLeft, Repeat, Users, MessageSquare, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ButtonGroup } from "@/components/ui/button-group"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { DateRangeFilter } from "@/components/date-range-filter"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface ChatHeaderProps {
   participants: string[]
@@ -15,6 +21,7 @@ interface ChatHeaderProps {
   onBack: () => void
   onSwap: () => void
   isSwapped: boolean
+  currentSelf: string
   isVisible: boolean
   dateRange: DateRange | undefined
   onDateRangeChange: (range: DateRange | undefined) => void
@@ -30,6 +37,7 @@ export function ChatHeader({
   onBack,
   onSwap,
   isSwapped,
+  currentSelf,
   isVisible,
   dateRange,
   onDateRangeChange,
@@ -74,15 +82,25 @@ export function ChatHeader({
             <ArrowLeft className="h-5 w-5" />
             <span className="sr-only">Back</span>
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onSwap}
-            className={cn("rounded-full", isSwapped && "text-primary")}
-          >
-            <Repeat className="h-4 w-4" />
-            <span className="sr-only">Swap sender</span>
-          </Button>
+          <TooltipProvider delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onSwap}
+                  className={cn("rounded-full", isSwapped && "text-primary")}
+                >
+                  <Repeat className="h-4 w-4" />
+                  <span className="sr-only">Swap sender</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="flex items-center gap-1.5 text-xs">
+                <User className="h-3 w-3" />
+                You: {currentSelf}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <DateRangeFilter
             dateRange={dateRange}
             onDateRangeChange={onDateRangeChange}
