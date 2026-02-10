@@ -37,7 +37,11 @@ export function ChatViewer({ chat, onBack }: ChatViewerProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const lastScrollTop = useRef(0)
   const [isBarVisible, setIsBarVisible] = useState(true)
-  const [selfIndex, setSelfIndex] = useState(-1)
+  const detectedSelfIndex = useMemo(() => {
+    const idx = chat.participants.indexOf(chat.self)
+    return idx === -1 ? 0 : idx
+  }, [chat.participants, chat.self])
+  const [selfIndex, setSelfIndex] = useState(detectedSelfIndex)
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
 
@@ -127,7 +131,7 @@ export function ChatViewer({ chat, onBack }: ChatViewerProps) {
     ).length
   }, [filteredMessages])
 
-  const currentSelf = selfIndex === -1 ? chat.self : chat.participants[selfIndex]
+  const currentSelf = chat.participants[selfIndex] ?? chat.self
 
   // Virtual scrolling — only render messages visible in the viewport + overscan buffer
   const virtualizer = useVirtualizer({
@@ -138,10 +142,7 @@ export function ChatViewer({ chat, onBack }: ChatViewerProps) {
   })
 
   const handleSwap = useCallback(() => {
-    setSelfIndex((prev) => {
-      const next = prev + 1
-      return next >= chat.participants.length ? -1 : next
-    })
+    setSelfIndex((prev) => (prev + 1) % chat.participants.length)
   }, [chat.participants.length])
 
   return (
@@ -219,7 +220,7 @@ export function ChatViewer({ chat, onBack }: ChatViewerProps) {
         messageCount={nonSystemMessageCount}
         onBack={onBack}
         onSwap={handleSwap}
-        isSwapped={selfIndex !== -1}
+        isSwapped={selfIndex !== detectedSelfIndex}
         currentSelf={currentSelf}
         isVisible={isBarVisible}
         dateRange={dateRange}
