@@ -30,7 +30,7 @@ export default function Home() {
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
             WasapX
           </h1>
-          <p className="max-w-md text-muted-foreground">
+          <p className="max-w-md text-sm sm:text-base text-muted-foreground">
             Read and display your WhatsApp chat exports. Just drop a{" "}
             <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono font-semibold text-foreground">
               .zip
