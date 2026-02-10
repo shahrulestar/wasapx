@@ -1,0 +1,50 @@
+# WasapX — Chat Export Viewer
+
+> Read and display your chat exports locally. Drop a .zip or .txt file to view conversations in a familiar chat layout. Nothing uploads. Everything runs in your browser.
+
+## What is WasapX?
+
+WasapX is a free, open, privacy-first web app that lets you view WhatsApp chat exports in a familiar chat interface. It runs entirely in your browser — no server uploads, no sign-in, no tracking.
+
+## Key Features
+
+- **100% Client-Side**: All processing happens in the browser. No data leaves your device.
+- **ZIP & TXT Support**: Drop a `.zip` (with media) or `.txt` file exported from WhatsApp.
+- **Media Preview**: Images, videos, and audio from ZIP exports are displayed inline.
+- **Date Range Filter**: Filter conversations by date or date range.
+- **Dark Mode**: Supports light, dark, and system themes.
+- **Large File Support**: Handles exports up to 5 GB.
+- **Responsive**: Works on desktop and mobile browsers.
+
+## How It Works
+
+1. Export a chat from WhatsApp (Settings → Chats → Export Chat).
+2. Open WasapX in your browser.
+3. Drag and drop (or browse) the `.zip` or `.txt` file.
+4. View your conversation in a familiar chat layout.
+
+## Privacy
+
+- No data is uploaded to any server.
+- No cookies, no accounts, no sign-in.
+- All parsing and rendering happens locally in your browser.
+- Media files from ZIP exports are loaded as in-memory blob URLs.
+
+## Supported Formats
+
+- WhatsApp iOS export (`.txt` and `.zip`)
+- WhatsApp Android export (`.txt` and `.zip`)
+
+## Tech Stack
+
+- Next.js (App Router)
+- React
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+- JSZip (for ZIP extraction)
+- react-day-picker (for date filtering)
+
+## URL
+
+https://wasapx.vercel.app
