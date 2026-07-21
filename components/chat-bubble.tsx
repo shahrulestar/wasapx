@@ -1,4 +1,4 @@
-import { memo } from "react"
+import { memo, type ReactNode } from "react"
 import type { ChatMessage } from "@/lib/parse-chat"
 import { IMAGE_EXT, VIDEO_EXT, AUDIO_EXT } from "@/lib/parse-chat"
 import {
@@ -21,6 +21,51 @@ interface ChatBubbleProps {
   isSelf: boolean
   showSender: boolean
   media?: Record<string, string>
+  highlight?: string
+  isActiveMatch?: boolean
+}
+
+function HighlightedText({
+  text,
+  highlight,
+  isActiveMatch,
+}: {
+  text: string
+  highlight: string
+  isActiveMatch: boolean
+}) {
+  const query = highlight.trim()
+  if (!query) return <>{text}</>
+
+  const lower = text.toLowerCase()
+  const needle = query.toLowerCase()
+  const parts: ReactNode[] = []
+  let start = 0
+  let key = 0
+
+  while (start < text.length) {
+    const idx = lower.indexOf(needle, start)
+    if (idx === -1) {
+      parts.push(text.slice(start))
+      break
+    }
+    if (idx > start) parts.push(text.slice(start, idx))
+    parts.push(
+      <mark
+        key={key++}
+        className={
+          isActiveMatch
+            ? "rounded-sm bg-primary/80 px-1.5 py-0.5 text-inherit"
+            : "rounded-sm bg-primary/45 px-1.5 py-0.5 text-inherit"
+        }
+      >
+        {text.slice(idx, idx + query.length)}
+      </mark>
+    )
+    start = idx + query.length
+  }
+
+  return <>{parts}</>
 }
 
 function pad2(n: number): string {
@@ -130,21 +175,39 @@ function MediaContent({ filename, src }: { filename: string; src: string }) {
 
 const EMPTY_MEDIA: Record<string, string> = {}
 
-export const ChatBubble = memo(function ChatBubble({
-  message,
-  isSelf,
-  showSender,
-  media = EMPTY_MEDIA,
-}: ChatBubbleProps) {
+export const ChatBubble = memo(
+  function ChatBubble({
+    message,
+    isSelf,
+    showSender,
+    media = EMPTY_MEDIA,
+    highlight = "",
+    isActiveMatch = false,
+  }: ChatBubbleProps) {
   if (
     message.isSystem ||
     isEncryptionNotice(message.message) ||
     isSystemLikeMessage(message.message)
   ) {
+    const systemText = stripInvisible(message.message)
     return (
       <div className="flex justify-center px-3 py-2">
-        <div className="max-w-[90%] rounded-lg bg-muted px-3 py-1 text-center text-xs font-medium text-muted-foreground">
-          {stripInvisible(message.message)}
+        <div
+          className={
+            isActiveMatch
+              ? "max-w-[90%] rounded-lg bg-muted-foreground/20 px-3 py-1 text-center text-xs font-medium text-muted-foreground"
+              : "max-w-[90%] rounded-lg bg-muted px-3 py-1 text-center text-xs font-medium text-muted-foreground"
+          }
+        >
+          {highlight.trim() ? (
+            <HighlightedText
+              text={systemText}
+              highlight={highlight}
+              isActiveMatch={isActiveMatch}
+            />
+          ) : (
+            systemText
+          )}
         </div>
       </div>
     )
@@ -152,6 +215,7 @@ export const ChatBubble = memo(function ChatBubble({
 
   const align = isSelf ? "end" : "start"
   const bubbleVariant = isSelf ? "default" : "muted"
+  const query = highlight.trim()
 
   return (
     <Message align={align} className="px-2 sm:px-3">
@@ -159,7 +223,17 @@ export const ChatBubble = memo(function ChatBubble({
         {showSender && !isSelf && (
           <MessageHeader className="text-sm text-primary">{message.sender}</MessageHeader>
         )}
-        <Bubble variant={bubbleVariant} align={align} className="max-w-full">
+        <Bubble
+          variant={bubbleVariant}
+          align={align}
+          className={
+            isActiveMatch
+              ? isSelf
+                ? "max-w-full *:data-[slot=bubble-content]:bg-primary/70"
+                : "max-w-full *:data-[slot=bubble-content]:bg-muted-foreground/25"
+              : "max-w-full"
+          }
+        >
           <BubbleContent>
             <div className="flex flex-col gap-1">
               {message.attachment && media[message.attachment] ? (
@@ -169,7 +243,15 @@ export const ChatBubble = memo(function ChatBubble({
                 />
               ) : (
                 <p className="text-sm whitespace-pre-wrap wrap-break-word">
-                  {message.message}
+                  {query ? (
+                    <HighlightedText
+                      text={message.message}
+                      highlight={query}
+                      isActiveMatch={isActiveMatch}
+                    />
+                  ) : (
+                    message.message
+                  )}
                 </p>
               )}
             </div>
@@ -181,4 +263,12 @@ export const ChatBubble = memo(function ChatBubble({
       </MessageContent>
     </Message>
   )
-})
+},
+  (prev, next) =>
+    prev.message === next.message &&
+    prev.isSelf === next.isSelf &&
+    prev.showSender === next.showSender &&
+    prev.media === next.media &&
+    prev.highlight === next.highlight &&
+    prev.isActiveMatch === next.isActiveMatch
+)

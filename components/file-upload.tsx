@@ -52,11 +52,11 @@ export function FileUpload({ onParsed }: FileUploadProps) {
           return
         }
         onParsed(parsed)
+        // Keep loading visible through navigation — /chat shows its own state.
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to parse the file."
         )
-      } finally {
         setIsLoading(false)
         resetInput()
       }
@@ -109,15 +109,15 @@ export function FileUpload({ onParsed }: FileUploadProps) {
         >
           {isLoading ? (
             <>
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-                <Loader2 className="h-7 w-7 animate-spin text-primary" />
+              <div className="flex size-14 items-center justify-center rounded-full bg-primary/10">
+                <Loader2 className="size-7 animate-spin text-primary" />
               </div>
               <div className="text-center">
                 <p className="text-sm font-medium">
-                  Parsing {fileName}...
+                  {fileName ? `Opening ${fileName}...` : "Opening chat..."}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Reading your WhatsApp chat
+                  Parsing and preparing your chat layout
                 </p>
               </div>
             </>
@@ -128,7 +128,7 @@ export function FileUpload({ onParsed }: FileUploadProps) {
                   Drag and drop your chat export
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Supports .txt and .zip files from WhatsApp
+                  .txt or .zip — export from WhatsApp without media
                 </p>
               </div>
               <div className="flex items-center gap-3">

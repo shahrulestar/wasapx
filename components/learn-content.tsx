@@ -21,8 +21,8 @@ const EXPORT_STEPS = [
     or scroll down and tap <strong>Export Chat</strong> (iOS).
   </>,
   <>
-    Choose <strong>Without Media</strong> when prompted. Media exports are not
-    supported yet.
+    Choose <strong>Without Media</strong> when prompted. WasapX does not support
+    images, videos, voice notes, or other media — text-only exports work best.
   </>,
   <>
     Save the exported{" "}
@@ -106,7 +106,8 @@ export function LearnContent({
           </div>
           <Title>How to Export WhatsApp Chats</Title>
           <Description>
-            Follow these steps to export a chat from WhatsApp.
+            Export <strong>Without Media</strong> — this tool views text chats
+            only, not images or other attachments.
           </Description>
         </Header>
         <div className="px-4 pb-2 sm:px-0">

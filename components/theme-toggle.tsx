@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Monitor, Moon, Sun } from "lucide-react"
+import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Kbd } from "@/components/ui/kbd"
@@ -17,10 +17,6 @@ interface ThemeToggleProps {
   showLabel?: boolean
 }
 
-type ThemeMode = "system" | "light" | "dark"
-
-const THEME_ORDER: ThemeMode[] = ["system", "light", "dark"]
-
 function isTypingTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false
   const tag = target.tagName
@@ -32,26 +28,19 @@ function isTypingTarget(target: EventTarget | null) {
   )
 }
 
-function nextTheme(current: string | undefined): ThemeMode {
-  const index = THEME_ORDER.indexOf((current as ThemeMode) || "system")
-  return THEME_ORDER[(index + 1) % THEME_ORDER.length]
-}
-
 export function ThemeToggle({ size = "icon", showLabel = false }: ThemeToggleProps) {
-  const { theme, setTheme } = useTheme()
+  const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  const mode: ThemeMode =
-    mounted && (theme === "light" || theme === "dark" || theme === "system")
-      ? theme
-      : "system"
+  const isDark = mounted && resolvedTheme === "dark"
+  const label = isDark ? "Dark" : "Light"
 
   function handleToggle() {
-    setTheme(nextTheme(mode))
+    setTheme(isDark ? "light" : "dark")
   }
 
   useEffect(() => {
@@ -60,15 +49,12 @@ export function ThemeToggle({ size = "icon", showLabel = false }: ThemeTogglePro
       if (event.key !== "d" && event.key !== "D") return
       if (isTypingTarget(event.target)) return
       event.preventDefault()
-      setTheme(nextTheme(theme === "light" || theme === "dark" || theme === "system" ? theme : "system"))
+      setTheme(resolvedTheme === "dark" ? "light" : "dark")
     }
 
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [theme, setTheme])
-
-  const label =
-    mode === "system" ? "System" : mode === "dark" ? "Dark" : "Light"
+  }, [resolvedTheme, setTheme])
 
   return (
     <TooltipProvider>
@@ -87,14 +73,8 @@ export function ThemeToggle({ size = "icon", showLabel = false }: ThemeTogglePro
             aria-label={`Theme: ${label}. Click to change.`}
           >
             <span className="relative size-4">
-              {mode === "system" ? (
-                <Monitor className="size-4" />
-              ) : (
-                <>
-                  <Sun className="size-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                  <Moon className="absolute inset-0 size-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                </>
-              )}
+              <Sun className="size-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute inset-0 size-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
             </span>
             {showLabel ? (
               <span className="text-xs leading-none font-medium sm:text-sm">

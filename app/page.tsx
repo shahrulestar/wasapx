@@ -42,8 +42,10 @@ export default function Home() {
 
         <FileUpload onParsed={handleParsed} />
 
-        <p className="text-xs text-muted-foreground">
-          Nothing is uploaded. Everything stays in your browser.
+        <p className="max-w-md text-center text-xs text-muted-foreground">
+          Export from WhatsApp as{" "}
+          <span className="font-medium text-foreground">Without Media</span>.
+          Images, videos, and other media are not supported.
         </p>
 
         <div className="flex items-center gap-1">

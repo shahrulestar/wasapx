@@ -10,6 +10,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
 interface DateRangeFilterProps {
@@ -20,6 +25,7 @@ interface DateRangeFilterProps {
   open?: boolean
   onOpenChange?: (open: boolean) => void
   showLabel?: boolean
+  className?: string
 }
 
 export function DateRangeFilter({
@@ -30,30 +36,38 @@ export function DateRangeFilter({
   open,
   onOpenChange,
   showLabel = false,
+  className,
 }: DateRangeFilterProps) {
   const hasFilter = dateRange?.from !== undefined
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          size={showLabel ? "default" : "icon-lg"}
-          className={cn(
-            showLabel
-              ? "h-auto shrink-0 flex-col gap-0.5 rounded-none px-2.5 py-2 sm:px-3"
-              : "rounded-full",
-            hasFilter && "text-primary"
-          )}
-        >
-          <CalendarDays className={showLabel ? "size-4" : undefined} />
-          {showLabel ? (
-            <span className="text-xs leading-none font-medium sm:text-sm">Date</span>
-          ) : (
-            <span className="sr-only">Filter by date</span>
-          )}
-        </Button>
-      </PopoverTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size={showLabel ? "default" : "icon-lg"}
+              aria-label="Filter by date"
+              className={cn(
+                showLabel
+                  ? "h-auto min-h-11 min-w-11 shrink-0 flex-col gap-0.5 rounded-none px-2.5 py-2 sm:px-3"
+                  : "rounded-full",
+                hasFilter && "text-primary",
+                className
+              )}
+            >
+              <CalendarDays />
+              {showLabel ? (
+                <span className="text-xs leading-none font-medium sm:text-sm">Date</span>
+              ) : (
+                <span className="sr-only">Filter by date</span>
+              )}
+            </Button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="top">Filter by date</TooltipContent>
+      </Tooltip>
       <PopoverContent
         className="w-auto p-0"
         side="top"
