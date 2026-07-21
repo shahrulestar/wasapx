@@ -8,9 +8,14 @@ export function ThemeProvider({
   ...props
 }: React.ComponentProps<typeof NextThemesProvider>) {
   // React 19 / Next 16 rejects <script> rendered inside client components.
-  // Mark the FOUC script as non-JS so the dev overlay does not block taps.
+  // FOUC / system preference is handled by the inline script in app/layout.tsx.
   return (
     <NextThemesProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+      storageKey="wasapx-theme"
       {...props}
       scriptProps={{ type: "application/json" }}
     >

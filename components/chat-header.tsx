@@ -58,7 +58,7 @@ export function ChatHeader({
   return (
     <div
       className={cn(
-        "pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-2 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] transition-transform duration-300 ease-in-out sm:px-3 sm:pb-[calc(1.75rem+env(safe-area-inset-bottom,0px))]",
+        "pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-2 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] transition-transform duration-300 ease-in-out sm:px-3 sm:pb-[max(1.25rem,env(safe-area-inset-bottom,0px))]",
         isVisible ? "translate-y-0" : "pointer-events-none translate-y-[calc(100%+1rem)]"
       )}
     >

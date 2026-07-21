@@ -21,6 +21,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#252525" },
+  ],
 };
 
 export const metadata: Metadata = {
@@ -32,7 +36,7 @@ export const metadata: Metadata = {
     template: "%s | WasapX",
   },
   description:
-    "Read and display your chat exports locally. Drop a .zip or .txt file to view conversations in a familiar chat layout. Nothing uploads. Everything runs in your browser.",
+    "Open and view your chat exports in a familiar chat layout. Simply drop in a .zip or .txt file—nothing is uploaded, and everything stays in your browser.",
   keywords: [
     "whatsapp",
     "chat",
@@ -48,14 +52,14 @@ export const metadata: Metadata = {
     siteName: "WasapX — Chat Export Viewer",
     title: "WasapX — Chat Export Viewer",
     description:
-      "Read and display your chat exports locally. Drop a .zip or .txt file to view conversations in a familiar chat layout. Nothing uploads. Everything runs in your browser.",
+      "Open and view your chat exports in a familiar chat layout. Simply drop in a .zip or .txt file—nothing is uploaded, and everything stays in your browser.",
     type: "website",
     images: [
       {
-        url: "/og.png",
+        url: "/image.png",
         width: 1200,
         height: 630,
-        alt: "WasapX — Chat Export Viewer",
+        alt: "WasapX — Open Chat Export Like Real Chats",
       },
     ],
   },
@@ -63,8 +67,8 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "WasapX — Chat Export Viewer",
     description:
-      "Read and display your chat exports locally. Drop a .zip or .txt file to view conversations in a familiar chat layout. Nothing uploads. Everything runs in your browser.",
-    images: ["/og.png"],
+      "Open and view your chat exports in a familiar chat layout. Simply drop in a .zip or .txt file—nothing is uploaded, and everything stays in your browser.",
+    images: ["/image.png"],
   },
 };
 
@@ -78,12 +82,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
+        {/* Apply system/user theme before paint. Uses wasapx-theme storage key.
+            Missing or "system" → follow prefers-color-scheme. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var k='wasapx-theme';var t=localStorage.getItem(k);var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var dark=t==='dark'||((!t||t==='system')&&d);var el=document.documentElement;el.classList.toggle('dark',dark);el.style.colorScheme=dark?'dark':'light'}catch(e){}})();`,
+          }}
+        />
+        <ThemeProvider>
           {children}
         </ThemeProvider>
         <Analytics />

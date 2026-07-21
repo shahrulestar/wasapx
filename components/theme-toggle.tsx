@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect } from "react"
-import { Moon, Sun } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Monitor, Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Kbd } from "@/components/ui/kbd"
@@ -17,6 +17,10 @@ interface ThemeToggleProps {
   showLabel?: boolean
 }
 
+type ThemeMode = "system" | "light" | "dark"
+
+const THEME_ORDER: ThemeMode[] = ["system", "light", "dark"]
+
 function isTypingTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false
   const tag = target.tagName
@@ -28,12 +32,26 @@ function isTypingTarget(target: EventTarget | null) {
   )
 }
 
+function nextTheme(current: string | undefined): ThemeMode {
+  const index = THEME_ORDER.indexOf((current as ThemeMode) || "system")
+  return THEME_ORDER[(index + 1) % THEME_ORDER.length]
+}
+
 export function ThemeToggle({ size = "icon", showLabel = false }: ThemeToggleProps) {
-  const { theme, resolvedTheme, setTheme } = useTheme()
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const mode: ThemeMode =
+    mounted && (theme === "light" || theme === "dark" || theme === "system")
+      ? theme
+      : "system"
 
   function handleToggle() {
-    const next = (resolvedTheme ?? theme) === "dark" ? "light" : "dark"
-    setTheme(next)
+    setTheme(nextTheme(mode))
   }
 
   useEffect(() => {
@@ -42,13 +60,15 @@ export function ThemeToggle({ size = "icon", showLabel = false }: ThemeTogglePro
       if (event.key !== "d" && event.key !== "D") return
       if (isTypingTarget(event.target)) return
       event.preventDefault()
-      const next = (resolvedTheme ?? theme) === "dark" ? "light" : "dark"
-      setTheme(next)
+      setTheme(nextTheme(theme === "light" || theme === "dark" || theme === "system" ? theme : "system"))
     }
 
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [theme, resolvedTheme, setTheme])
+  }, [theme, setTheme])
+
+  const label =
+    mode === "system" ? "System" : mode === "dark" ? "Dark" : "Light"
 
   return (
     <TooltipProvider>
@@ -56,6 +76,7 @@ export function ThemeToggle({ size = "icon", showLabel = false }: ThemeTogglePro
         <TooltipTrigger asChild>
           <Button
             variant="ghost"
+            type="button"
             size={showLabel ? "default" : size}
             className={
               showLabel
@@ -63,20 +84,29 @@ export function ThemeToggle({ size = "icon", showLabel = false }: ThemeTogglePro
                 : "rounded-full"
             }
             onClick={handleToggle}
+            aria-label={`Theme: ${label}. Click to change.`}
           >
             <span className="relative size-4">
-              <Sun className="size-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute inset-0 size-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              {mode === "system" ? (
+                <Monitor className="size-4" />
+              ) : (
+                <>
+                  <Sun className="size-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                  <Moon className="absolute inset-0 size-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                </>
+              )}
             </span>
             {showLabel ? (
-              <span className="text-xs leading-none font-medium sm:text-sm">Theme</span>
+              <span className="text-xs leading-none font-medium sm:text-sm">
+                {label}
+              </span>
             ) : (
-              <span className="sr-only">Toggle theme</span>
+              <span className="sr-only">Theme: {label}</span>
             )}
           </Button>
         </TooltipTrigger>
         <TooltipContent className="flex items-center gap-1.5 text-sm">
-          Toggle theme
+          Theme: {label}
           <Kbd>D</Kbd>
         </TooltipContent>
       </Tooltip>

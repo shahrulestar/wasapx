@@ -1,6 +1,6 @@
 # WasapX — Chat Export Viewer
 
-> Read and display your chat exports locally. Drop a .zip or .txt file to view conversations in a familiar chat layout. Nothing uploads. Everything runs in your browser.
+> Open and view your chat exports in a familiar chat layout. Simply drop in a .zip or .txt file—nothing is uploaded, and everything stays in your browser.
 
 ## What is WasapX?
 

@@ -27,7 +27,8 @@ export default function Home() {
             WasapX
           </h1>
           <p className="max-w-md text-balance text-sm text-muted-foreground sm:text-base">
-            Read and display your WhatsApp chat exports. Just drop a{" "}
+            Open and view your chat exports in a familiar chat layout. Simply
+            drop in a{" "}
             <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs font-semibold text-foreground">
               .zip
             </code>{" "}
@@ -35,14 +36,14 @@ export default function Home() {
             <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs font-semibold text-foreground">
               .txt
             </code>{" "}
-            file below. Everything stays in your browser.
+            file—nothing is uploaded, and everything stays in your browser.
           </p>
         </div>
 
         <FileUpload onParsed={handleParsed} />
 
         <p className="text-xs text-muted-foreground">
-          No data is uploaded to any server. Your chats remain private.
+          Nothing is uploaded. Everything stays in your browser.
         </p>
 
         <div className="flex items-center gap-1">

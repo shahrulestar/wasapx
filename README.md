@@ -1,6 +1,6 @@
 # WasapX — Chat Export Viewer
 
-> Read and display your WhatsApp chat exports locally. Drop a `.zip` or `.txt` file to view conversations in a familiar chat layout. Nothing uploads. Everything runs in your browser.
+> Open and view your chat exports in a familiar chat layout. Simply drop in a `.zip` or `.txt` file—nothing is uploaded, and everything stays in your browser.
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fyour-username%2Fwasapx)
 
@@ -97,7 +97,7 @@ wasapx/
 │   └── utils.ts            # Utility helpers
 └── public/
     ├── llms.txt            # LLM-friendly project description
-    └── og.png              # Open Graph image
+    └── image.png           # Open Graph / social preview image
 ```
 
 ## Supported Export Formats

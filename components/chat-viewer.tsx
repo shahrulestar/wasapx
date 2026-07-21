@@ -157,13 +157,13 @@ export function ChatViewer({ chat, onBack }: ChatViewerProps) {
   }, [isAtBottom])
 
   return (
-    <div className="relative h-dvh w-full overflow-hidden">
+    <div className="relative h-full min-h-0 w-full flex-1 overflow-hidden">
       <div
         ref={scrollAreaRef}
-        className="absolute inset-0 overflow-y-auto overscroll-contain"
+        className="absolute inset-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]"
       >
         <div className="mx-auto w-full max-w-[800px] px-3">
-          <div className="flex flex-col pt-4 pb-36 sm:pb-32">
+          <div className="flex flex-col pt-4 pb-[calc(9rem+env(safe-area-inset-bottom,0px))] sm:pb-[calc(8rem+env(safe-area-inset-bottom,0px))]">
             {isMounted &&
               filteredMessages.map((msg, idx) => {
               const prevMsg = idx > 0 ? filteredMessages[idx - 1] : null
