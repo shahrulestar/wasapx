@@ -1,7 +1,20 @@
 import { memo } from "react"
 import type { ChatMessage } from "@/lib/parse-chat"
 import { IMAGE_EXT, VIDEO_EXT, AUDIO_EXT } from "@/lib/parse-chat"
-import { cn } from "@/lib/utils"
+import {
+  Message,
+  MessageContent,
+  MessageFooter,
+  MessageHeader,
+} from "@/components/ui/message"
+import { Bubble, BubbleContent } from "@/components/ui/bubble"
+import {
+  Attachment,
+  AttachmentContent,
+  AttachmentDescription,
+  AttachmentMedia,
+  AttachmentTitle,
+} from "@/components/ui/attachment"
 
 interface ChatBubbleProps {
   message: ChatMessage
@@ -10,8 +23,17 @@ interface ChatBubbleProps {
   media?: Record<string, string>
 }
 
+function pad2(n: number): string {
+  return n < 10 ? `0${n}` : String(n)
+}
+
 function formatTime(date: Date): string {
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  // Manual format — Node vs browser toLocaleTimeString() disagree and break hydration.
+  const h24 = date.getHours()
+  const minutes = pad2(date.getMinutes())
+  const h12 = h24 % 12 || 12
+  const ampm = h24 < 12 ? "AM" : "PM"
+  return `${h12}:${minutes} ${ampm}`
 }
 
 /** Strip invisible Unicode chars (LTR mark, zero-width space, etc.) for comparison */
@@ -93,73 +115,70 @@ function MediaContent({ filename, src }: { filename: string; src: string }) {
     )
   }
 
-  // Fallback: link to download
   return (
-    <a
-      href={src}
-      download={filename}
-      rel="noopener noreferrer"
-      className="inline-flex items-center gap-1.5 text-sm underline underline-offset-2"
-    >
-      {filename}
+    <a href={src} download={filename} rel="noopener noreferrer">
+      <Attachment state="done">
+        <AttachmentMedia variant="icon" />
+        <AttachmentContent>
+          <AttachmentTitle>{filename}</AttachmentTitle>
+          <AttachmentDescription>Download</AttachmentDescription>
+        </AttachmentContent>
+      </Attachment>
     </a>
   )
 }
 
 const EMPTY_MEDIA: Record<string, string> = {}
 
-export const ChatBubble = memo(function ChatBubble({ message, isSelf, showSender, media = EMPTY_MEDIA }: ChatBubbleProps) {
-  // Render encryption notice and system messages as centered badge (like date labels)
-  if (message.isSystem || isEncryptionNotice(message.message) || isSystemLikeMessage(message.message)) {
+export const ChatBubble = memo(function ChatBubble({
+  message,
+  isSelf,
+  showSender,
+  media = EMPTY_MEDIA,
+}: ChatBubbleProps) {
+  if (
+    message.isSystem ||
+    isEncryptionNotice(message.message) ||
+    isSystemLikeMessage(message.message)
+  ) {
     return (
-      <div className="flex items-center justify-center py-3">
-        <div className="rounded-lg bg-muted px-3 py-1 text-center text-xs font-medium text-muted-foreground shadow-sm">
+      <div className="flex justify-center px-3 py-2">
+        <div className="max-w-[90%] rounded-lg bg-muted px-3 py-1 text-center text-xs font-medium text-muted-foreground">
           {stripInvisible(message.message)}
         </div>
       </div>
     )
   }
 
+  const align = isSelf ? "end" : "start"
+  const bubbleVariant = isSelf ? "default" : "muted"
+
   return (
-    <div
-      className={cn(
-        "flex w-full px-3",
-        isSelf ? "justify-end" : "justify-start"
-      )}
-    >
-      <div
-        className={cn(
-          "relative max-w-[75%] rounded-xl px-3 pb-1.5 pt-1.5",
-          isSelf
-            ? "rounded-tr-sm bg-primary text-primary-foreground"
-            : "rounded-tl-sm border border-border bg-card text-card-foreground"
-        )}
-      >
+    <Message align={align} className="px-2 sm:px-3">
+      <MessageContent className="max-w-[85%]">
         {showSender && !isSelf && (
-          <p className="mb-0.5 text-xs font-semibold text-primary">
-            {message.sender}
-          </p>
+          <MessageHeader className="text-sm text-primary">{message.sender}</MessageHeader>
         )}
-        <div className="flex flex-col gap-0.5">
-          {message.attachment && media[message.attachment] ? (
-            <MediaContent filename={message.attachment} src={media[message.attachment]} />
-          ) : (
-            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
-              {message.message}
-            </p>
-          )}
-          <p
-            className={cn(
-              "self-end text-[10px] leading-none",
-              isSelf
-                ? "text-primary-foreground/70"
-                : "text-muted-foreground"
-            )}
-          >
-            {formatTime(message.timestamp)}
-          </p>
-        </div>
-      </div>
-    </div>
+        <Bubble variant={bubbleVariant} align={align} className="max-w-full">
+          <BubbleContent>
+            <div className="flex flex-col gap-1">
+              {message.attachment && media[message.attachment] ? (
+                <MediaContent
+                  filename={message.attachment}
+                  src={media[message.attachment]}
+                />
+              ) : (
+                <p className="text-sm whitespace-pre-wrap wrap-break-word">
+                  {message.message}
+                </p>
+              )}
+            </div>
+          </BubbleContent>
+        </Bubble>
+        <MessageFooter className="text-[10px] font-normal opacity-70">
+          {formatTime(message.timestamp)}
+        </MessageFooter>
+      </MessageContent>
+    </Message>
   )
 })

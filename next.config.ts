@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: path.join(__dirname),
+  },
   headers: async () => [
     {
       source: "/(.*)",
@@ -39,7 +43,7 @@ const nextConfig: NextConfig = {
             "img-src 'self' blob: data:",
             "media-src 'self' blob:",
             "font-src 'self' https://fonts.gstatic.com",
-            "connect-src 'self'",
+            "connect-src 'self' https://api.github.com",
             "object-src 'none'",
             "base-uri 'self'",
             "form-action 'self'",

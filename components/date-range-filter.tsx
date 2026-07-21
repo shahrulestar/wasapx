@@ -19,6 +19,7 @@ interface DateRangeFilterProps {
   maxDate?: Date
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  showLabel?: boolean
 }
 
 export function DateRangeFilter({
@@ -28,6 +29,7 @@ export function DateRangeFilter({
   maxDate,
   open,
   onOpenChange,
+  showLabel = false,
 }: DateRangeFilterProps) {
   const hasFilter = dateRange?.from !== undefined
 
@@ -36,11 +38,20 @@ export function DateRangeFilter({
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
-          size="icon"
-          className={cn("rounded-full", hasFilter && "text-primary")}
+          size={showLabel ? "default" : "icon-lg"}
+          className={cn(
+            showLabel
+              ? "h-auto shrink-0 flex-col gap-0.5 rounded-none px-2.5 py-2 sm:px-3"
+              : "rounded-full",
+            hasFilter && "text-primary"
+          )}
         >
-          <CalendarDays className="h-4 w-4" />
-          <span className="sr-only">Filter by date</span>
+          <CalendarDays className={showLabel ? "size-4" : undefined} />
+          {showLabel ? (
+            <span className="text-xs leading-none font-medium sm:text-sm">Date</span>
+          ) : (
+            <span className="sr-only">Filter by date</span>
+          )}
         </Button>
       </PopoverTrigger>
       <PopoverContent

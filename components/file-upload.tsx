@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useRef, useState } from "react"
-import { Upload, FileText, FileArchive, Loader2 } from "lucide-react"
+import { FileText, FileArchive, Loader2 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import type { ParsedChat } from "@/lib/parse-chat"
@@ -123,9 +123,6 @@ export function FileUpload({ onParsed }: FileUploadProps) {
             </>
           ) : (
             <>
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-                <Upload className="h-7 w-7 text-primary" />
-              </div>
               <div className="text-center">
                 <p className="text-sm font-medium">
                   Drag and drop your chat export
@@ -145,7 +142,7 @@ export function FileUpload({ onParsed }: FileUploadProps) {
                 </div>
               </div>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => inputRef.current?.click()}
               >

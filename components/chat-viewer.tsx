@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react"
-import { useVirtualizer } from "@tanstack/react-virtual"
 import type { DateRange } from "react-day-picker"
 import { ChatBubble, isEncryptionNotice, isSystemLikeMessage } from "@/components/chat-bubble"
 import { ChatHeader } from "@/components/chat-header"
@@ -13,20 +12,34 @@ interface ChatViewerProps {
   onBack: () => void
 }
 
+const WEEKDAYS = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+] as const
+
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+] as const
+
 function formatDateLabel(date: Date): string {
-  const today = new Date()
-  const yesterday = new Date()
-  yesterday.setDate(yesterday.getDate() - 1)
-
-  if (date.toDateString() === today.toDateString()) return "Today"
-  if (date.toDateString() === yesterday.toDateString()) return "Yesterday"
-
-  return date.toLocaleDateString(undefined, {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  })
+  // Manual format — avoids Node vs browser locale hydration mismatches.
+  return `${WEEKDAYS[date.getDay()]}, ${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`
 }
 
 function isSameDay(a: Date, b: Date): boolean {
@@ -44,18 +57,27 @@ export function ChatViewer({ chat, onBack }: ChatViewerProps) {
   const [selfIndex, setSelfIndex] = useState(detectedSelfIndex)
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
+  const [isAtBottom, setIsAtBottom] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
-  // Revoke blob URLs on unmount to prevent memory leaks
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   useEffect(() => {
     return () => revokeMediaUrls(chat)
   }, [chat])
 
-  // Attach scroll listener to the native scrollable container
   useEffect(() => {
     const viewport = scrollAreaRef.current
     if (!viewport) return
 
     let ticking = false
+
+    function updateAtBottom() {
+      const maxScroll = viewport!.scrollHeight - viewport!.clientHeight
+      setIsAtBottom(maxScroll <= 10 || viewport!.scrollTop >= maxScroll - 10)
+    }
 
     function handleScroll() {
       if (ticking) return
@@ -64,38 +86,28 @@ export function ChatViewer({ chat, onBack }: ChatViewerProps) {
       requestAnimationFrame(() => {
         const currentScrollTop = viewport!.scrollTop
         const delta = currentScrollTop - lastScrollTop.current
-        const maxScroll =
-          viewport!.scrollHeight - viewport!.clientHeight
+        const maxScroll = viewport!.scrollHeight - viewport!.clientHeight
 
-        // Only trigger on meaningful scroll (> 2px threshold)
         if (Math.abs(delta) > 2) {
-          // Close calendar popover on any scroll
           setIsCalendarOpen(false)
-
-          if (delta > 0) {
-            // Scrolling down → hide
-            setIsBarVisible(false)
-          } else {
-            // Scrolling up → show
-            setIsBarVisible(true)
-          }
+          setIsBarVisible(delta < 0)
         }
 
-        // Always show at top or near bottom
         if (currentScrollTop < 10 || currentScrollTop >= maxScroll - 10) {
           setIsBarVisible(true)
         }
 
+        setIsAtBottom(maxScroll <= 10 || currentScrollTop >= maxScroll - 10)
         lastScrollTop.current = currentScrollTop
         ticking = false
       })
     }
 
+    updateAtBottom()
     viewport.addEventListener("scroll", handleScroll, { passive: true })
     return () => viewport.removeEventListener("scroll", handleScroll)
   }, [])
 
-  // Compute min/max dates from the chat — use loop to avoid stack overflow with spread on large arrays
   const chatDateRange = useMemo(() => {
     if (chat.messages.length === 0) return { min: new Date(), max: new Date() }
     let min = chat.messages[0].timestamp.getTime()
@@ -108,7 +120,6 @@ export function ChatViewer({ chat, onBack }: ChatViewerProps) {
     return { min: new Date(min), max: new Date(max) }
   }, [chat.messages])
 
-  // Filter messages by date range
   const filteredMessages = useMemo(() => {
     if (!dateRange?.from) return chat.messages
 
@@ -124,7 +135,6 @@ export function ChatViewer({ chat, onBack }: ChatViewerProps) {
     })
   }, [chat.messages, dateRange])
 
-  // Memoize non-system message count (previously recomputed on every render)
   const nonSystemMessageCount = useMemo(() => {
     return filteredMessages.filter(
       (m) => !m.isSystem && !isEncryptionNotice(m.message) && !isSystemLikeMessage(m.message)
@@ -133,84 +143,68 @@ export function ChatViewer({ chat, onBack }: ChatViewerProps) {
 
   const currentSelf = chat.participants[selfIndex] ?? chat.self
 
-  // Virtual scrolling — only render messages visible in the viewport + overscan buffer
-  const virtualizer = useVirtualizer({
-    count: filteredMessages.length,
-    getScrollElement: () => scrollAreaRef.current,
-    estimateSize: () => 72,
-    overscan: 20,
-  })
-
   const handleSwap = useCallback(() => {
     setSelfIndex((prev) => (prev + 1) % chat.participants.length)
   }, [chat.participants.length])
 
+  const handleScrollEdge = useCallback(() => {
+    const viewport = scrollAreaRef.current
+    if (!viewport) return
+    viewport.scrollTo({
+      top: isAtBottom ? 0 : viewport.scrollHeight,
+      behavior: "smooth",
+    })
+  }, [isAtBottom])
+
   return (
-    <div className="flex h-dvh flex-col">
+    <div className="relative h-dvh w-full overflow-hidden">
       <div
         ref={scrollAreaRef}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+        className="absolute inset-0 overflow-y-auto overscroll-contain"
       >
         <div className="mx-auto w-full max-w-[800px] px-3">
-          <div className="pt-4 pb-28">
-            <div
-              style={{
-                height: virtualizer.getTotalSize(),
-                width: "100%",
-                position: "relative",
-              }}
-            >
-              {virtualizer.getVirtualItems().map((virtualItem) => {
-                const idx = virtualItem.index
-                const msg = filteredMessages[idx]
-                const prevMsg = idx > 0 ? filteredMessages[idx - 1] : null
-                const showDateSep =
-                  !prevMsg || !isSameDay(prevMsg.timestamp, msg.timestamp)
-                const isPrevSystemLike =
-                  prevMsg &&
-                  (prevMsg.isSystem || isEncryptionNotice(prevMsg.message) || isSystemLikeMessage(prevMsg.message))
-                const isCurrentSystemLike =
-                  msg.isSystem || isEncryptionNotice(msg.message) || isSystemLikeMessage(msg.message)
-                const showSender =
-                  !isCurrentSystemLike &&
-                  (!prevMsg ||
-                    prevMsg.sender !== msg.sender ||
-                    isPrevSystemLike ||
-                    showDateSep)
+          <div className="flex flex-col pt-4 pb-36 sm:pb-32">
+            {isMounted &&
+              filteredMessages.map((msg, idx) => {
+              const prevMsg = idx > 0 ? filteredMessages[idx - 1] : null
+              const showDateSep =
+                !prevMsg || !isSameDay(prevMsg.timestamp, msg.timestamp)
+              const isPrevSystemLike =
+                prevMsg &&
+                (prevMsg.isSystem ||
+                  isEncryptionNotice(prevMsg.message) ||
+                  isSystemLikeMessage(prevMsg.message))
+              const isCurrentSystemLike =
+                msg.isSystem ||
+                isEncryptionNotice(msg.message) ||
+                isSystemLikeMessage(msg.message)
+              const showSender =
+                !isCurrentSystemLike &&
+                (!prevMsg ||
+                  prevMsg.sender !== msg.sender ||
+                  isPrevSystemLike ||
+                  showDateSep)
 
-                return (
-                  <div
-                    key={virtualItem.key}
-                    ref={virtualizer.measureElement}
-                    data-index={virtualItem.index}
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      transform: `translateY(${virtualItem.start}px)`,
-                    }}
-                    className="pb-1"
-                  >
-                    {showDateSep && (
-                      <div className="flex items-center justify-center py-3">
-                        <div className="rounded-lg bg-muted px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
-                          {formatDateLabel(msg.timestamp)}
-                        </div>
+              return (
+                <div key={`${msg.timestamp.getTime()}-${idx}`} className="pb-1">
+                  {showDateSep && (
+                    <div className="flex justify-center py-3">
+                      <div className="rounded-lg bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+                        {formatDateLabel(msg.timestamp)}
                       </div>
-                    )}
-                    <div className={showSender && !msg.isSystem ? "mt-2" : ""}>
-                      <ChatBubble
-                        message={msg}
-                        isSelf={msg.sender === currentSelf}
-                        showSender={showSender}
-                        media={chat.media}
-                      />
                     </div>
+                  )}
+                  <div className={showSender && !msg.isSystem ? "mt-2" : ""}>
+                    <ChatBubble
+                      message={msg}
+                      isSelf={msg.sender === currentSelf}
+                      showSender={showSender}
+                      media={chat.media}
+                    />
                   </div>
-                )
-              })}
-            </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -220,6 +214,8 @@ export function ChatViewer({ chat, onBack }: ChatViewerProps) {
         messageCount={nonSystemMessageCount}
         onBack={onBack}
         onSwap={handleSwap}
+        onScrollEdge={handleScrollEdge}
+        isAtBottom={isAtBottom}
         isSwapped={selfIndex !== detectedSelfIndex}
         currentSelf={currentSelf}
         isVisible={isBarVisible}
